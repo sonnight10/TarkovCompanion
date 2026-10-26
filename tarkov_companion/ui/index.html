@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarkov Companion</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<div class="app">
+  <!-- Barre latérale -->
+  <nav class="rail glass" aria-label="Navigation">
+    <div class="brand" title="Tarkov Companion"><img src="logo.svg" width="34" height="34" alt="Tarkov Companion"></div>
+    <button class="nav active" data-view="map" title="Carte">
+      <svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg><span>Carte</span>
+    </button>
+    <button class="nav" data-view="prep" title="Préparer le raid">
+      <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.3 7.6 8 9 4.7-1.4 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4.5"/></svg><span>Préparer</span>
+    </button>
+    <button class="nav" data-view="quests" title="Quêtes">
+      <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5V4Z"/><path d="m8.5 12 2 2 4-4.5M8.5 17.5h7"/></svg><span>Quêtes</span>
+    </button>
+    <button class="nav" data-view="history" title="Historique des raids">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Historique</span>
+    </button>
+    <button class="nav" data-view="stats" title="Statistiques">
+      <svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span>Stats</span>
+    </button>
+    <button class="nav" data-view="journal" title="Journal">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Journal</span>
+    </button>
+    <div class="grow"></div>
+    <button class="nav" data-view="credits" title="Crédits et licences">
+      <svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10A4.5 4.5 0 0 1 12 7.8a4.5 4.5 0 0 1 7.5 2.7c0 5.6-7.5 10-7.5 10Z"/></svg><span>Crédits</span>
+    </button>
+    <button class="nav" data-view="settings" title="Réglages">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg><span>Réglages</span>
+    </button>
+  </nav>
+
+  <main class="main">
+    <div class="update-bar glass-2" id="updateBar" hidden>
+      <span id="updateMsg"></span>
+      <span class="grow"></span>
+      <button class="btn primary" id="updateGo">Télécharger</button>
+      <button class="btn ghost" id="updateLater">Plus tard</button>
+    </div>
+    <!-- Barre du haut -->
+    <header class="top glass">
+      <div class="title">
+        <h1 id="viewTitle">Carte</h1>
+        <p id="viewSub">Position et objectifs en direct</p>
+      </div>
+      <div class="pills">
+        <span class="pill" id="pillRaid"><i class="dot"></i><b>Hors raid</b></span>
+        <span class="pill" id="pillLogs" title="Dossier des logs"><i class="dot"></i><b>Logs</b></span>
+        <span class="pill" id="pillShots" title="Dossier des captures d'écran"><i class="dot"></i><b>Captures</b></span>
+        <span class="pill" id="pillApi" title="Données de quêtes (tarkov.dev)"><i class="dot"></i><b>Quêtes</b></span>
+      </div>
+    </header>
+
+    <!-- Vue carte -->
+    <section class="view glass active" id="view-map">
+      <div id="map"></div>
+      <div class="map-msg" id="mapMsg" hidden></div>
+
+      <div class="float tl glass-2" id="mapPicker"></div>
+
+      <aside class="float tr glass-2" id="activePanel">
+        <div class="panel-head"><h3>Quêtes en cours</h3><span class="count" id="activeCount">0</span></div>
+        <div class="panel-body" id="activeList"></div>
+        <div class="panel-head"><h3>À faire ici</h3><span class="count" id="todoCount">0</span></div>
+        <div class="panel-body" id="todoList"></div>
+        <div class="panel-head"><h3>Extractions <small id="extFaction"></small></h3><span class="count" id="extCount">0</span></div>
+        <div class="panel-body" id="extList"></div>
+      </aside>
+
+      <div class="float bl glass-2" id="toolbar">
+        <button class="tool on" id="tFollow" title="Voir toute la carte"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg><span>Vue entière</span></button>
+        <button class="tool on" id="tTrail" title="Afficher le trajet"><svg viewBox="0 0 24 24"><path d="M4 18c4 0 3-8 8-8s3-5 8-5"/><circle cx="4" cy="18" r="1.5"/></svg><span>Trajet</span></button>
+        <button class="tool on" id="tObj" title="Afficher les objectifs"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10Z"/><circle cx="12" cy="11" r="2"/></svg><span>Objectifs</span></button>
+        <button class="tool on" id="tExt" title="Afficher les extractions"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg><span>Extractions</span></button>
+        <button class="tool" id="tFaction" title="Changer de camp (PMC / Scav)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-4 3-6 6.5-6s5.9 2 6.5 6"/></svg><span id="tFactionLabel">PMC</span></button>
+        <button class="tool" id="tStyle" title="Style de la carte : schéma ou détaillé (tuiles tarkov.dev)"><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span id="tStyleLabel">Schéma</span></button>
+        <button class="tool" id="tMeasure" title="Mesurer une distance : clique deux points sur la carte"><svg viewBox="0 0 24 24"><path d="m3 17 14-14 4 4L7 21l-4-4Z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg><span>Mesurer</span></button>
+        <button class="tool" id="tMark" title="Poser un repère : clique sur la carte"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10Z"/><path d="M12 8.5v5M9.5 11h5"/></svg><span>Repère</span></button>
+        <button class="tool" id="tRoute" title="Parcours conseillé : ordre de visite des objectifs de cette carte (touche P)"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h5a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h5"/></svg><span>Parcours</span></button>
+        <button class="tool" id="tOverlay" title="Mode superposition : petite fenêtre toujours au premier plan (touche G)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="11" y="11" width="8" height="6" rx="1"/></svg><span>Superposition</span></button>
+        <button class="tool" id="tClear" title="Effacer le trajet"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/></svg><span>Effacer</span></button>
+        <span class="sep" id="floorSep" hidden></span>
+        <div class="floors" id="floors"></div>
+      </div>
+
+      <div class="float brb glass-2" id="replayBar" hidden>
+        <span><b id="reTitle">Replay</b> · <span id="reInfo"></span></span>
+        <button class="btn" id="rePlay">Rejouer</button>
+        <button class="btn ghost" id="reClose">Fermer</button>
+      </div>
+
+      <div class="float hud glass-2" id="hud" hidden>
+        <span class="hud-arrow" id="hudArrow"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 10l7-7 7 7"/></svg></span>
+        <span class="hud-txt"><small>Extraction la plus proche</small><b id="hudName"></b></span>
+        <span class="hud-dist" id="hudDist"></span>
+      </div>
+
+      <div class="float br glass-2 coords" id="coords">En attente d'une capture d'écran…</div>
+    </section>
+
+    <!-- Vue préparer le raid -->
+    <section class="view glass" id="view-prep">
+      <div class="page">
+        <div class="page-head">
+          <div class="chips" id="prepPicker"></div>
+          <button class="btn primary" id="prepGo">Voir sur la carte</button>
+        </div>
+        <div class="prep-grid">
+          <div class="stack" id="prepQuests"></div>
+          <div class="stack">
+            <div class="card"><h3>Extractions <small id="prepFaction"></small></h3><div id="prepExt"></div></div>
+            <div class="card"><h3>Mes repères</h3><div id="prepMarks"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vue historique -->
+    <section class="view glass" id="view-history">
+      <div class="page"><div class="stack" id="histList"></div></div>
+    </section>
+
+    <!-- Vue statistiques -->
+    <section class="view glass" id="view-stats">
+      <div class="page" id="statsBox"></div>
+    </section>
+
+    <!-- Vue crédits -->
+    <section class="view glass" id="view-credits">
+      <div class="page" id="creditsBox"></div>
+    </section>
+
+    <!-- Vue quêtes -->
+    <section class="view glass" id="view-quests">
+      <div class="quests-top">
+        <div class="stat">
+          <div class="stat-row"><strong id="qDone">0</strong><span id="qTotal">/ 0 terminées</span></div>
+          <div class="bar"><i id="qBar"></i></div>
+        </div>
+        <div class="filters">
+          <input id="qSearch" type="search" placeholder="Rechercher une quête…" autocomplete="off">
+          <select id="qTrader"><option value="">Tous les marchands</option></select>
+          <select id="qMap"><option value="">Toutes les cartes</option></select>
+          <button class="btn ghost" id="qRefresh" title="Recharger depuis tarkov.dev">Actualiser</button>
+        </div>
+        <div class="seg" id="qStatus">
+          <button data-s="all" class="on">Toutes</button>
+          <button data-s="started">En cours</button>
+          <button data-s="todo">À faire</button>
+          <button data-s="finished">Terminées</button>
+          <button data-s="failed">Échouées</button>
+        </div>
+      </div>
+      <div class="items-box" id="itemsBox"></div>
+      <div class="quest-list" id="questList"></div>
+    </section>
+
+    <!-- Vue journal -->
+    <section class="view glass" id="view-journal">
+      <div class="journal" id="journal"><p class="empty">Aucun événement pour l'instant. Lance une partie : les quêtes, cartes et raids apparaîtront ici.</p></div>
+    </section>
+
+    <!-- Vue réglages -->
+    <section class="view glass" id="view-settings">
+      <div class="settings">
+        <div class="card">
+          <h3>Dossiers surveillés</h3>
+          <p class="hint">Lecture seule : l'application lit uniquement des fichiers texte et des noms de fichiers. Elle ne touche ni au jeu ni à sa mémoire.</p>
+          <label class="field"><span>Logs de Tarkov</span>
+            <div class="path"><input id="sLogs" readonly><button class="btn" data-pick="logs_dir">Parcourir</button></div>
+          </label>
+          <label class="field"><span>Captures d'écran</span>
+            <div class="path"><input id="sShots" readonly><button class="btn" data-pick="screenshots_dir">Parcourir</button></div>
+          </label>
+          <div class="row"><button class="btn primary" id="sDetect">Détecter automatiquement</button><span class="hint" id="sDetectMsg"></span></div>
+        </div>
+        <div class="card">
+          <h3>Affichage</h3>
+          <label class="switch"><input type="checkbox" id="sTrail"><i></i><span>Afficher le trajet</span></label>
+          <label class="switch"><input type="checkbox" id="sObjectives"><i></i><span>Afficher les objectifs des quêtes en cours</span></label>
+          <label class="switch"><input type="checkbox" id="sTodoObj"><i></i><span>Afficher aussi les objectifs des quêtes à faire sur la carte</span></label>
+          <label class="switch"><input type="checkbox" id="sExtracts"><i></i><span>Afficher les extractions</span></label>
+          <label class="field inline"><span>Style des cartes</span>
+            <select id="sMapStyle"><option value="schema">Schéma (vectoriel, léger)</option><option value="detail">Détaillé (tuiles tarkov.dev)</option></select>
+          </label>
+          <p class="hint">Le style détaillé charge les tuiles de tarkov.dev (auteurs : Shebuka, TarkovBOT.eu, tarkov.dev) depuis internet ; il est aussi le seul fond disponible pour Laboratoire, Labyrinthe et Icebreaker. Si une carte n'a pas de version détaillée, le schéma est utilisé.</p>
+          <label class="field inline"><span>Mon camp</span>
+            <select id="sFaction"><option value="pmc">PMC (USEC / BEAR)</option><option value="scav">Scav</option></select>
+          </label>
+          <label class="field inline"><span>Langue des quêtes</span>
+            <select id="sLang"><option value="fr">Français</option><option value="en">English</option></select>
+          </label>
+        </div>
+        <div class="card">
+          <h3>Apparence</h3>
+          <label class="field inline"><span>Thème</span>
+            <span class="seg2" id="sTheme"><button data-v="dark">Sombre</button><button data-v="light">Clair</button></span>
+          </label>
+          <label class="field inline"><span>Couleur d'accent</span>
+            <span class="swatches" id="sAccent">
+              <button class="sw" data-v="amber" title="Ambre" style="background:oklch(.84 .15 82)"></button>
+              <button class="sw" data-v="blue" title="Bleu" style="background:oklch(.78 .14 250)"></button>
+              <button class="sw" data-v="green" title="Vert" style="background:oklch(.8 .15 155)"></button>
+              <button class="sw" data-v="violet" title="Violet" style="background:oklch(.75 .15 300)"></button>
+              <button class="sw" data-v="red" title="Rouge" style="background:oklch(.72 .17 25)"></button>
+            </span>
+          </label>
+          <label class="field inline"><span>Langue de l'interface</span>
+            <span class="seg2" id="sUiLang"><button data-v="fr">Français</button><button data-v="en">English</button></span>
+          </label>
+        </div>
+        <div class="card">
+          <h3>Captures d'écran</h3>
+          <label class="field inline"><span>Rappel sonore toutes les (secondes)</span>
+            <input id="sReminder" type="number" min="0" max="600" step="5" value="0" class="num">
+          </label>
+          <p class="hint">0 = désactivé, sinon entre 5 et 600. Pendant un raid, l'application te rappelle de prendre une capture : c'est toi qui appuies sur la touche de capture du jeu. L'application n'envoie jamais de touches au jeu.</p>
+          <label class="field inline"><span>Type de rappel</span>
+            <select id="sRemStyle"><option value="toast">Notification discrète</option><option value="beep">Bip (Windows)</option><option value="both">Notification + bip</option></select>
+          </label>
+          <label class="field inline"><span>Délai propre à une carte</span>
+            <span class="row"><select id="sRemMap"></select><input id="sRemVal" type="number" min="0" max="600" step="5" value="0" class="num"><button class="btn" id="sRemSet">Appliquer</button></span>
+          </label>
+          <p class="hint" id="sRemList"></p>
+          <label class="switch"><input type="checkbox" id="sCleanup"><i></i><span>Supprimer les captures utilisées à la fin du raid</span></label>
+          <p class="hint">Seules les captures apparues <b>pendant que l'application tourne</b> sont supprimées (définitivement, sans corbeille), y compris celles que tu aurais prises pour toi. Tes anciennes captures ne sont jamais touchées. La suppression a aussi lieu à la fermeture de l'application.</p>
+          <div class="row"><button class="btn" id="sCleanNow">Supprimer maintenant les captures de cette session</button><span class="hint" id="sCleanMsg"></span></div>
+        </div>
+        <div class="card">
+          <h3>Diagnostic réseau</h3>
+          <p class="hint">En cas d'erreur sur les quêtes ou les extractions, affiche les dernières réponses de tarkov.dev (utile pour me les transmettre).</p>
+          <div class="row"><button class="btn primary" id="sProbeBtn">Tester la connexion à tarkov.dev</button><button class="btn" id="sDiagBtn">Afficher le diagnostic</button><button class="btn" id="sLogBtn">Diagnostic des logs</button><button class="btn" id="sRaidBtn">Diagnostic de raid</button><button class="btn" id="sCopyBtn">Copier</button><button class="btn ghost" id="sRetryBtn">Recharger quêtes et extractions</button></div>
+          <pre class="diag" id="sDiag" hidden></pre>
+        </div>
+        <div class="card">
+          <h3>Mises à jour</h3>
+          <p class="hint" id="sUpdVersion"></p>
+          <label class="switch"><input type="checkbox" id="sUpdCheck"><i></i><span>Chercher une mise à jour au lancement</span></label>
+          <label class="field"><span>Dépôt GitHub des versions (propriétaire/nom)</span>
+            <input id="sUpdRepo" placeholder="ex. monpseudo/tarkov-companion" spellcheck="false" autocomplete="off">
+          </label>
+          <p class="hint">Les nouvelles versions sont des « Releases » GitHub de ce dépôt (un .zip de la version compilée). Le fichier est vérifié (empreinte SHA-256) avant toute installation, et rien n'est installé sans ton accord.</p>
+          <div class="row"><button class="btn primary" id="sUpdBtn">Rechercher une mise à jour</button><span class="hint" id="sUpdMsg"></span></div>
+        </div>
+        <div class="card">
+          <h3>Sauvegarde</h3>
+          <p class="hint">Exporte tes quêtes, ton historique de raids et tes repères dans un fichier (utile pour changer d'ordinateur). L'import remplace les données actuelles.</p>
+          <div class="row"><button class="btn" id="sExport">Exporter</button><button class="btn" id="sImport">Importer</button><span class="hint" id="sBackupMsg"></span></div>
+        </div>
+        <div class="card">
+          <h3>Raccourcis clavier</h3>
+          <ul class="how">
+            <li><b>V</b> vue entière · <b>T</b> trajet · <b>O</b> objectifs · <b>E</b> extractions · <b>P</b> parcours</li>
+            <li><b>M</b> mesurer · <b>R</b> poser un repère · <b>G</b> superposition · <b>Échap</b> annuler l'outil</li>
+            <li><b>1</b> à <b>5</b> : Carte, Préparer, Quêtes, Historique, Stats</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Comment ça marche</h3>
+          <ul class="how">
+            <li><b>Quêtes</b> : détectées automatiquement dans les logs du jeu quand un marchand t'envoie un message de quête.</li>
+            <li><b>Carte</b> : détectée dans les logs au chargement du raid.</li>
+            <li><b>Position</b> : le jeu ne l'écrit pas dans ses logs. Appuie sur la touche de capture d'écran du jeu : le nom du fichier contient tes coordonnées, et ton marqueur se déplace.</li>
+          </ul>
+          <p class="hint" id="sVersion"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="vendor/leaflet.js"></script>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
