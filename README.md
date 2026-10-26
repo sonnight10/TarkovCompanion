@@ -109,15 +109,4 @@ python -m unittest tests.test_engine tests.test_api
 - **Raccourcis** : V vue entière, T trajet, O objectifs, E extractions, P parcours, M mesurer, R repère, G superposition, 1 à 5 pour changer d'onglet.
 - **Installateur** : `build_exe.bat` (Windows, Python requis une fois) produit `dist\TarkovCompanion\TarkovCompanion.exe`.
 
-## Mises à jour
 
-1. Le dépôt `sonnight10/TarkovCompanion` est déjà configuré par défaut (modifiable dans **Réglages → Mises à jour**).
-2. Pour publier une nouvelle version : change `__version__` dans `tarkov_companion/__init__.py`, lance `build_exe.bat`, puis `python make_release.py`. Publie le `.zip` (et le `.sha256`) comme **Release GitHub** avec le tag `v<version>`.
-3. Au lancement (ou via **Rechercher une mise à jour**), l'application compare les versions et propose : *Télécharger* → vérification SHA-256 → *Installer et redémarrer*. L'installation automatique concerne la version compilée sous Windows ; sinon le fichier est téléchargé et tu le décompresses toi-même.
-- Sécurité : HTTPS vers GitHub uniquement (redirections comprises), empreinte obligatoire, contenu du .zip contrôlé, rien d'installé sans ton clic. Tes données (quêtes, historique, repères) sont dans ton dossier utilisateur et ne sont pas touchées.
-
-## Logo et fabrication du .exe
-
-- Le logo (viseur + flèche) est dans `assets/` (`logo.svg`, `logo.png`, `icon.ico`) ; il sert d'icône du .exe, de favicon et dans la barre latérale. Il est original et sans lien avec Battlestate Games.
-- **Compiler sans Windows** : le dépôt contient `.github/workflows/build.yml`. Pousse un tag (`git tag v1.0.1 && git push origin v1.0.1`) : GitHub compile le .exe sur un serveur Windows, crée le .zip + son SHA-256 et publie la Release automatiquement (le tag doit correspondre à `__version__`). Le logiciel installé détecte alors la mise à jour.
-- **Compiler chez toi** (Windows) : `build_exe.bat`, puis `python make_release.py`.
